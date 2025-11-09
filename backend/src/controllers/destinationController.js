@@ -6,7 +6,7 @@ class DestinationController {
     /**
      * Récupérer toutes les destinations
      */
-    getAll(req, res) {
+    getAllDestinations(req, res) {
         try {
             const destinations = db.prepare(`
                 SELECT 
@@ -26,7 +26,7 @@ class DestinationController {
     /**
      * Récupérer une destination par ID
      */
-    getById(req, res) {
+    getDestination(req, res) {
         try {
             const { id } = req.params;
             
@@ -57,7 +57,7 @@ class DestinationController {
     /**
      * Créer une nouvelle destination
      */
-    async create(req, res) {
+    async createDestination(req, res) {
         try {
             const { origin, destination, departure_date, return_date, max_price } = req.body;
 
@@ -112,7 +112,7 @@ class DestinationController {
     /**
      * Mettre à jour une destination
      */
-    update(req, res) {
+    updateDestination(req, res) {
         try {
             const { id } = req.params;
             const { origin, destination, departure_date, return_date, max_price, is_active } = req.body;
@@ -163,7 +163,7 @@ class DestinationController {
     /**
      * Supprimer une destination
      */
-    delete(req, res) {
+    deleteDestination(req, res) {
         try {
             const { id } = req.params;
 
@@ -178,6 +178,145 @@ class DestinationController {
                 success: true, 
                 message: 'Destination supprimée' 
             });
+
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    /**
+     * Vérifier le prix d'une destination
+     */
+    async checkPrice(req, res) {
+        try {
+            const { id } = req.params;
+
+            const destination = db.prepare('SELECT * FROM destinations WHERE id = ?').get(id);
+            if (!destination) {
+                return res.status(404).json({ success: false, error: 'Destination introuvable' });
+            }
+
+            const price = await duffelService.getLowestPrice({
+                origin: destination.origin,
+                destination: destination.destination,
+                departureDate: destination.departure_date,
+                returnDate: destination.return_date
+            });
+
+            if (price) {
+                db.prepare(`
+                    INSERT INTO prices (destination_id, price, currency, airline)
+                    VALUES (?, ?, 'CAD', 'Air Canada')
+                `).run(id, price);
+
+                const analysis = priceAnalyzer.calculateQualityScore(id, price);
+
+                res.json({
+                    success: true,
+                    data: { price, analysis },
+                    message: 'Prix vérifié avec succès'
+                });
+            } else {
+                res.status(404).json({
+                    success: false,
+                    error: 'Aucun vol trouvé pour cette destination'
+                });
+            }
+
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    /**
+     * Récupérer l'historique des prix
+     */
+    getPriceHistory(req, res) {
+        try {
+            const { id } = req.params;
+            const limit = req.query.limit || 100;
+
+            const prices = db.prepare(`
+                SELECT * FROM prices
+                WHERE destination_id = ?
+                ORDER BY checked_at DESC
+                LIMIT ?
+            `).all(id, limit);
+
+            res.json({ success: true, data: prices });
+
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    /**
+     * Récupérer les meilleures offres
+     */
+    getBestDeals(req, res) {
+        try {
+            const destinations = db.prepare(`
+                SELECT
+                    d.*,
+                    p.price as latest_price,
+                    p.checked_at
+                FROM destinations d
+                LEFT JOIN prices p ON p.id = (
+                    SELECT id FROM prices
+                    WHERE destination_id = d.id
+                    ORDER BY checked_at DESC
+                    LIMIT 1
+                )
+                WHERE d.is_active = 1
+                AND p.price IS NOT NULL
+                ORDER BY p.price ASC
+                LIMIT 10
+            `).all();
+
+            res.json({ success: true, data: destinations });
+
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    /**
+     * Récupérer les alertes
+     */
+    getAlerts(req, res) {
+        try {
+            const destinationId = req.query.destinationId;
+
+            let query = 'SELECT * FROM alerts ORDER BY sent_at DESC';
+            let params = [];
+
+            if (destinationId) {
+                query = 'SELECT * FROM alerts WHERE destination_id = ? ORDER BY sent_at DESC';
+                params = [destinationId];
+            }
+
+            const alerts = db.prepare(query).all(...params);
+
+            res.json({ success: true, data: alerts });
+
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    /**
+     * Récupérer les statistiques globales
+     */
+    getStats(req, res) {
+        try {
+            const stats = {
+                activeDestinations: db.prepare('SELECT COUNT(*) as count FROM destinations WHERE is_active = 1').get().count,
+                totalPriceChecks: db.prepare('SELECT COUNT(*) as count FROM prices').get().count,
+                totalAlerts: db.prepare('SELECT COUNT(*) as count FROM alerts').get().count,
+                averagePrice: db.prepare('SELECT AVG(price) as avg FROM prices').get().avg || 0
+            };
+
+            res.json({ success: true, data: stats });
 
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

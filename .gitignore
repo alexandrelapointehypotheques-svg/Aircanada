@@ -1,0 +1,42 @@
+# Fichiers d'environnement (contiennent des clés API secrètes)
+.env
+.env.local
+.env.*.local
+
+# Dépendances
+node_modules/
+*/node_modules/
+
+# Base de données
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+dist/
+build/
+*/build/
+*/dist/
+
+# Tests
+coverage/
+.nyc_output/

@@ -1,0 +1,230 @@
+.destination-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.destination-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.destination-card.urgent {
+    border-color: #10b981;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.route-info h3 {
+    font-size: 20px;
+    color: #1f2937;
+    margin-bottom: 5px;
+}
+
+.route-info .dates {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.quality-badge {
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: white;
+    text-align: center;
+    min-width: 80px;
+}
+
+.quality-badge .score {
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.quality-badge .label {
+    display: block;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.card-body {
+    margin-bottom: 20px;
+}
+
+.price-info {
+    margin-bottom: 15px;
+}
+
+.current-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    color: white;
+}
+
+.current-price .label {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.current-price .price {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+.price-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.price-stats .stat {
+    text-align: center;
+    padding: 8px;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+
+.price-stats .stat .label {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 3px;
+}
+
+.price-stats .stat .value {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.no-price {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    padding: 20px;
+}
+
+.budget-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f9fafb;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.budget-info .label {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.budget-info .budget {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.budget-info .budget.under {
+    color: #10b981;
+}
+
+.budget-info .budget.over {
+    color: #6b7280;
+}
+
+.recommendation {
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px solid;
+    margin-bottom: 10px;
+}
+
+.recommendation strong {
+    font-size: 16px;
+}
+
+.alert-status {
+    text-align: center;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-badge.active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.inactive {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.card-actions .btn {
+    flex: 1;
+    min-width: 100px;
+}
+
+.chart-container {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #f3f4f6;
+}
+
+@media (max-width: 768px) {
+    .card-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .quality-badge {
+        align-self: stretch;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .quality-badge .score,
+    .quality-badge .label {
+        display: inline;
+    }
+
+    .card-actions {
+        flex-direction: column;
+    }
+
+    .card-actions .btn {
+        width: 100%;
+    }
+}

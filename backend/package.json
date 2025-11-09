@@ -1,0 +1,30 @@
+{
+  "name": "air-canada-tracker-backend",
+  "version": "1.0.0",
+  "description": "Backend API pour surveillance prix Air Canada",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "init-db": "node src/db/init.js"
+  },
+  "keywords": ["air-canada", "flight-tracker", "price-monitoring"],
+  "author": "Alexandre Lapointe",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "better-sqlite3": "^9.2.2",
+    "node-cron": "^3.0.3",
+    "twilio": "^4.20.0",
+    "date-fns": "^3.0.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

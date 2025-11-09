@@ -1,0 +1,86 @@
+air-canada-price-tracker/
+│
+├── README.md                 # Documentation principale
+├── LICENSE                   # Licence MIT
+├── .gitignore               # Fichiers à ignorer
+├── start.sh                 # Script de démarrage rapide
+│
+├── backend/                 # API Node.js/Express
+│   ├── package.json
+│   ├── server.js           # Point d'entrée
+│   ├── .env.example        # Template variables d'environnement
+│   │
+│   ├── controllers/        # Logique métier
+│   │   └── destinationController.js
+│   │
+│   ├── models/             # Modèles de données
+│   │   └── database.js     # Interface SQLite
+│   │
+│   ├── routes/             # Routes API REST
+│   │   └── api.js
+│   │
+│   ├── services/           # Services externes
+│   │   ├── flightAPI.js    # Duffel/FlightLabs
+│   │   ├── twilioService.js # SMS
+│   │   └── emailService.js  # Emails
+│   │
+│   └── cron/               # Tâches automatisées
+│       └── priceChecker.js # Vérification 2x/jour
+│
+├── frontend/               # Application React
+│   ├── package.json
+│   ├── public/
+│   │   └── index.html
+│   │
+│   └── src/
+│       ├── index.js
+│       ├── App.js
+│       ├── App.css
+│       │
+│       ├── components/     # Composants React
+│       │   ├── Dashboard.js
+│       │   ├── Dashboard.css
+│       │   ├── DestinationCard.js
+│       │   ├── DestinationCard.css
+│       │   ├── PriceChart.js
+│       │   ├── PriceChart.css
+│       │   ├── AddDestinationForm.js
+│       │   ├── AddDestinationForm.css
+│       │   ├── StatsOverview.js
+│       │   └── StatsOverview.css
+│       │
+│       └── services/       # Services API
+│           └── api.js      # Client HTTP
+│
+├── database/               # Base de données
+│   ├── init.js            # Script d'initialisation
+│   └── tracker.db         # SQLite (créé automatiquement)
+│
+└── docs/                   # Documentation
+    ├── API.md             # Documentation API REST
+    └── QUICK_START.md     # Guide démarrage rapide
+
+FICHIERS CLÉS:
+
+Backend:
+- server.js                → Serveur Express principal
+- cron/priceChecker.js    → Vérifie les prix 2x/jour
+- services/flightAPI.js   → Intégration Duffel/FlightLabs
+- services/twilioService.js → Envoi SMS
+- models/database.js      → Gestion SQLite
+
+Frontend:
+- App.js                  → Application principale
+- components/Dashboard.js → Page principale
+- components/DestinationCard.js → Carte de destination
+- components/PriceChart.js → Graphique historique
+- services/api.js         → Client API
+
+Database:
+- init.js                 → Crée tables et données test
+- tracker.db              → Base SQLite avec destinations
+
+Configuration:
+- backend/.env            → Clés API (Duffel, Twilio, SMTP)
+- frontend/package.json   → Dépendances React
+- backend/package.json    → Dépendances Node.js

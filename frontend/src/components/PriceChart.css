@@ -1,0 +1,76 @@
+.price-chart {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.chart-header {
+    margin-bottom: 20px;
+}
+
+.chart-header h4 {
+    color: #1f2937;
+    margin-bottom: 10px;
+}
+
+.chart-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.chart-stats .stat {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.chart-stats .label {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.chart-stats .value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.chart-loading,
+.chart-empty {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+}
+
+.chart-insights {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+
+.insight {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.insight.good {
+    color: #059669;
+}
+
+.insight.excellent {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.insight.warning {
+    color: #d97706;
+}
+
+@media (max-width: 768px) {
+    .chart-stats {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

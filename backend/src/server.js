@@ -13,30 +13,13 @@ app.use(cors());
 app.use(express.json());
 
 // Routes - Destinations
-app.get('/api/destinations', destinationController.getAllDestinations);
-app.get('/api/destinations/:id', destinationController.getDestination);
-app.post('/api/destinations', destinationController.createDestination);
-app.put('/api/destinations/:id', destinationController.updateDestination);
-app.delete('/api/destinations/:id', destinationController.deleteDestination);
-app.post('/api/destinations/:id/check-price', destinationController.checkPrice);
-app.get('/api/destinations/:id/prices', destinationController.getPriceHistory);
-app.get('/api/destinations/best-deals', destinationController.getBestDeals);
-
-// Routes - Alerts
-app.get('/api/alerts', destinationController.getAlerts);
+app.get('/api/destinations', destinationController.getAll.bind(destinationController));
+app.get('/api/destinations/:id', destinationController.getById.bind(destinationController));
+app.post('/api/destinations', destinationController.create.bind(destinationController));
+app.put('/api/destinations/:id', destinationController.update.bind(destinationController));
+app.delete('/api/destinations/:id', destinationController.delete.bind(destinationController));
 
 // Routes - System
-app.post('/api/check-all-prices', async (req, res) => {
-  try {
-    console.log('🔄 Vérification manuelle des prix démarrée...');
-    await priceChecker.checkAllPrices();
-    res.json({ success: true, message: 'Vérification des prix terminée' });
-  } catch (error) {
-    console.error('Erreur lors de la vérification des prix:', error);
-    res.status(500).json({ error: 'Erreur lors de la vérification des prix' });
-  }
-});
-
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -44,8 +27,6 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development'
   });
 });
-
-app.get('/api/stats', destinationController.getStats);
 
 // Initialisation de la vérification automatique des prix
 // Exécution à 6h et 18h tous les jours

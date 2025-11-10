@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Air Canada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🛫 Test API Air Canada Price Tracker</h1>
+
+    <div class="test-box">
+        <h3>Test 1: Health Check</h3>
+        <button onclick="testHealth()">Tester API Health</button>
+        <div id="health-result" class="result"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Test 2: Liste des Destinations</h3>
+        <button onclick="testDestinations()">Charger Destinations</button>
+        <div id="destinations-result" class="result"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Test 3: Ajouter une Destination</h3>
+        <button onclick="testAddDestination()">Ajouter YUL → CDG</button>
+        <div id="add-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            const className = isError ? 'error' : 'success';
+            element.innerHTML = `<span class="${className}">${message}</span>`;
+        }
+
+        async function testHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = '⏳ Test en cours...';
+
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+
+                log('health-result',
+                    `✅ SUCCESS!\n\nStatus: ${response.status}\nResponse:\n${JSON.stringify(data, null, 2)}`
+                );
+            } catch (error) {
+                log('health-result',
+                    `❌ ERREUR!\n\n${error.message}\n\nLe backend ne répond pas. Vérifiez qu'il tourne sur le port 5000.`,
+                    true
+                );
+            }
+        }
+
+        async function testDestinations() {
+            const resultDiv = document.getElementById('destinations-result');
+            resultDiv.innerHTML = '⏳ Test en cours...';
+
+            try {
+                const response = await fetch(`${API_URL}/destinations`);
+                const data = await response.json();
+
+                if (data.success) {
+                    log('destinations-result',
+                        `✅ SUCCESS!\n\nNombre de destinations: ${data.data.length}\n\nDonnées:\n${JSON.stringify(data, null, 2)}`
+                    );
+                } else {
+                    log('destinations-result',
+                        `⚠️ Réponse inattendue:\n${JSON.stringify(data, null, 2)}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                log('destinations-result',
+                    `❌ ERREUR!\n\n${error.message}\n\nProblème CORS ou backend non accessible.`,
+                    true
+                );
+            }
+        }
+
+        async function testAddDestination() {
+            const resultDiv = document.getElementById('add-result');
+            resultDiv.innerHTML = '⏳ Ajout en cours...';
+
+            const newDestination = {
+                origin: 'YUL',
+                destination: 'CDG',
+                departure_date: '2026-06-15',
+                return_date: '2026-06-22',
+                max_price: 1000
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/destinations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newDestination)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    log('add-result',
+                        `✅ DESTINATION AJOUTÉE!\n\nID: ${data.data.id}\nRoute: ${data.data.origin} → ${data.data.destination}\n\nRéponse complète:\n${JSON.stringify(data, null, 2)}`
+                    );
+                } else {
+                    log('add-result',
+                        `⚠️ Échec:\n${JSON.stringify(data, null, 2)}`,
+                        true
+                    );
+                }
+            } catch (error) {
+                log('add-result',
+                    `❌ ERREUR!\n\n${error.message}\n\nImpossible d'ajouter la destination.`,
+                    true
+                );
+            }
+        }
+
+        // Auto-test au chargement
+        window.onload = function() {
+            console.log('Page de test chargée. Backend attendu sur:', API_URL);
+        };
+    </script>
+</body>
+</html>

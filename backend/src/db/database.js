@@ -78,8 +78,16 @@ if (usePostgres) {
     console.log('PostgreSQL connexion etablie');
 
 } else {
-    // SQLite pour le developpement local
-    const Database = require('better-sqlite3');
+    // SQLite pour le developpement local uniquement
+    // better-sqlite3 est charge dynamiquement pour eviter les erreurs en production
+    let Database;
+    try {
+        Database = require('better-sqlite3');
+    } catch (err) {
+        console.error('better-sqlite3 non disponible. Utilisez DATABASE_URL pour PostgreSQL.');
+        process.exit(1);
+    }
+
     const dbPath = path.join(__dirname, '../../database.db');
     const sqliteDb = new Database(dbPath);
 

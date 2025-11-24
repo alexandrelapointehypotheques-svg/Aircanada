@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import PriceChart from './PriceChart';
+import DateAlternatives from './DateAlternatives';
 import './DestinationCard.css';
 
 function DestinationCard({ destination, onDelete, onCheckPrice, onRefresh }) {
     const [showChart, setShowChart] = useState(false);
-    
+    const [showAlternatives, setShowAlternatives] = useState(false);
+
     const {
         id,
         origin,
@@ -21,33 +23,33 @@ function DestinationCard({ destination, onDelete, onCheckPrice, onRefresh }) {
         maxPrice: histMaxPrice
     } = destination;
 
-    // Calculer le score qualité/prix
+    // Calculer le score qualite/prix
     const getQualityScore = () => {
         if (!latestPrice || !avgPrice) return null;
         const percentageBelowAvg = ((avgPrice - latestPrice) / avgPrice) * 100;
-        
+
         if (percentageBelowAvg >= 20) return { score: 10, label: 'Excellent', color: '#10b981' };
-        if (percentageBelowAvg >= 10) return { score: 8, label: 'Très bon', color: '#3b82f6' };
+        if (percentageBelowAvg >= 10) return { score: 8, label: 'Tres bon', color: '#3b82f6' };
         if (percentageBelowAvg >= 0) return { score: 6, label: 'Bon', color: '#f59e0b' };
         if (percentageBelowAvg >= -10) return { score: 4, label: 'Moyen', color: '#ef4444' };
-        return { score: 2, label: 'Élevé', color: '#991b1b' };
+        return { score: 2, label: 'Eleve', color: '#991b1b' };
     };
 
     const qualityScore = getQualityScore();
 
-    // Déterminer la recommandation
+    // Determiner la recommandation
     const getRecommendation = () => {
         if (!latestPrice || !avgPrice) return null;
-        
+
         const percentageBelowAvg = ((avgPrice - latestPrice) / avgPrice) * 100;
         const underBudget = max_price && latestPrice < max_price;
-        
+
         if (percentageBelowAvg >= 15 || (underBudget && percentageBelowAvg >= 10)) {
-            return { text: '🎯 Acheter maintenant!', color: '#10b981', urgent: true };
+            return { text: 'Acheter maintenant!', color: '#10b981', urgent: true };
         } else if (percentageBelowAvg >= 5) {
-            return { text: '✅ Bon moment', color: '#3b82f6', urgent: false };
+            return { text: 'Bon moment', color: '#3b82f6', urgent: false };
         } else {
-            return { text: '⏳ Attendre', color: '#f59e0b', urgent: false };
+            return { text: 'Attendre', color: '#f59e0b', urgent: false };
         }
     };
 
@@ -57,7 +59,7 @@ function DestinationCard({ destination, onDelete, onCheckPrice, onRefresh }) {
         <div className={`destination-card ${recommendation?.urgent ? 'urgent' : ''}`}>
             <div className="card-header">
                 <div className="route-info">
-                    <h3>{origin} ✈️ {dest}</h3>
+                    <h3>{origin} - {dest}</h3>
                     <p className="dates">
                         {format(new Date(departure_date), 'dd MMM yyyy', { locale: fr })}
                         {return_date && ` - ${format(new Date(return_date), 'dd MMM yyyy', { locale: fr })}`}
@@ -106,8 +108,8 @@ function DestinationCard({ destination, onDelete, onCheckPrice, onRefresh }) {
                         <span className="label">Budget max:</span>
                         <span className={`budget ${latestPrice && latestPrice < max_price ? 'under' : 'over'}`}>
                             {max_price.toFixed(0)} $
-                            {latestPrice && latestPrice < max_price && 
-                                ` (économie: ${(max_price - latestPrice).toFixed(0)} $)`
+                            {latestPrice && latestPrice < max_price &&
+                                ` (economie: ${(max_price - latestPrice).toFixed(0)} $)`
                             }
                         </span>
                     </div>
@@ -121,37 +123,43 @@ function DestinationCard({ destination, onDelete, onCheckPrice, onRefresh }) {
 
                 <div className="alert-status">
                     <span className={`status-badge ${enable_alerts ? 'active' : 'inactive'}`}>
-                        {enable_alerts ? '🔔 Alertes actives' : '🔕 Alertes désactivées'}
+                        {enable_alerts ? 'Alertes actives' : 'Alertes desactivees'}
                     </span>
                 </div>
             </div>
 
             <div className="card-actions">
-                <button 
+                <button
                     className="btn btn-small btn-secondary"
                     onClick={() => setShowChart(!showChart)}
                 >
-                    {showChart ? '📉 Masquer graphique' : '📊 Voir graphique'}
+                    {showChart ? 'Masquer graphique' : 'Voir graphique'}
                 </button>
-                <button 
+                <button
+                    className="btn btn-small btn-info"
+                    onClick={() => setShowAlternatives(true)}
+                >
+                    Dates alternatives
+                </button>
+                <button
                     className="btn btn-small btn-primary"
                     onClick={() => onCheckPrice(id)}
                 >
-                    🔄 Vérifier prix
+                    Verifier prix
                 </button>
-                <a 
+                <a
                     href="https://www.aircanada.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-small btn-success"
                 >
-                    ✈️ Réserver
+                    Reserver
                 </a>
-                <button 
+                <button
                     className="btn btn-small btn-danger"
                     onClick={() => onDelete(id)}
                 >
-                    🗑️
+                    Supprimer
                 </button>
             </div>
 
@@ -159,6 +167,13 @@ function DestinationCard({ destination, onDelete, onCheckPrice, onRefresh }) {
                 <div className="chart-container">
                     <PriceChart destinationId={id} />
                 </div>
+            )}
+
+            {showAlternatives && (
+                <DateAlternatives
+                    destinationId={id}
+                    onClose={() => setShowAlternatives(false)}
+                />
             )}
         </div>
     );

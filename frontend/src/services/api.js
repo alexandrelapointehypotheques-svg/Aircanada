@@ -41,7 +41,10 @@ export const destinationAPI = {
     getPriceHistory: (id, limit = 100) => api.get(`/destinations/${id}/prices`, { params: { limit } }),
     
     // Obtenir les meilleures offres
-    getBestDeals: () => api.get('/destinations/best-deals')
+    getBestDeals: () => api.get('/destinations/best-deals'),
+
+    // Obtenir les dates alternatives avec prix
+    getAlternatives: (id, days = 3) => api.get(`/destinations/${id}/alternatives`, { params: { days } })
 };
 
 export const alertAPI = {

@@ -59,6 +59,48 @@ app.post('/api/destinations/:id/check-price', async (req, res) => {
     }
 });
 
+// Route - Rechercher les dates alternatives pour une destination
+const duffelService = require('./services/duffelService');
+
+app.get('/api/destinations/:id/alternatives', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const daysRange = parseInt(req.query.days) || 3;
+
+        // Recuperer la destination
+        const stmt = db.prepare('SELECT * FROM destinations WHERE id = ?');
+        const destination = await execQuery(stmt, 'get', id);
+
+        if (!destination) {
+            return res.status(404).json({ success: false, error: 'Destination introuvable' });
+        }
+
+        // Rechercher les alternatives
+        const alternatives = await duffelService.searchAlternativeDates({
+            origin: destination.origin,
+            destination: destination.destination,
+            departureDate: destination.departure_date,
+            returnDate: destination.return_date
+        }, daysRange);
+
+        res.json({
+            success: true,
+            data: {
+                destination: {
+                    origin: destination.origin,
+                    destination: destination.destination,
+                    originalDate: destination.departure_date,
+                    returnDate: destination.return_date
+                },
+                alternatives
+            }
+        });
+    } catch (error) {
+        console.error('Erreur getAlternatives:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Routes - System
 app.get('/api/health', (req, res) => {
     res.json({

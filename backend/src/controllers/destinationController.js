@@ -2,41 +2,51 @@ const db = require('../db/database');
 const duffelService = require('../services/duffelService');
 const priceAnalyzer = require('../services/priceAnalyzer');
 
+// Helper pour executer les requetes de maniere unifiee (sync SQLite / async PostgreSQL)
+async function execQuery(stmt, method, ...params) {
+    const result = stmt[method](...params);
+    // Si c'est une Promise (PostgreSQL), await; sinon retourne directement (SQLite)
+    return result instanceof Promise ? await result : result;
+}
+
 class DestinationController {
     /**
-     * Récupérer toutes les destinations
+     * Recuperer toutes les destinations
      */
-    getAll(req, res) {
+    async getAll(req, res) {
         try {
-            const destinations = db.prepare(`
-                SELECT 
+            const stmt = db.prepare(`
+                SELECT
                     d.*,
                     (SELECT price FROM prices WHERE destination_id = d.id ORDER BY checked_at DESC LIMIT 1) as latest_price,
                     (SELECT COUNT(*) FROM prices WHERE destination_id = d.id) as price_count
                 FROM destinations d
                 ORDER BY d.created_at DESC
-            `).all();
+            `);
+            const destinations = await execQuery(stmt, 'all');
 
             res.json({ success: true, data: destinations });
         } catch (error) {
+            console.error('Erreur getAll:', error);
             res.status(500).json({ success: false, error: error.message });
         }
     }
 
     /**
-     * Récupérer une destination par ID
+     * Recuperer une destination par ID
      */
-    getById(req, res) {
+    async getById(req, res) {
         try {
             const { id } = req.params;
-            
-            const destination = db.prepare(`
-                SELECT 
+
+            const stmt = db.prepare(`
+                SELECT
                     d.*,
                     (SELECT price FROM prices WHERE destination_id = d.id ORDER BY checked_at DESC LIMIT 1) as latest_price
                 FROM destinations d
                 WHERE d.id = ?
-            `).get(id);
+            `);
+            const destination = await execQuery(stmt, 'get', id);
 
             if (!destination) {
                 return res.status(404).json({ success: false, error: 'Destination introuvable' });
@@ -44,18 +54,19 @@ class DestinationController {
 
             // Ajouter l'analyse du prix
             if (destination.latest_price) {
-                const analysis = priceAnalyzer.calculateQualityScore(destination.id, destination.latest_price);
+                const analysis = await priceAnalyzer.calculateQualityScore(destination.id, destination.latest_price);
                 destination.analysis = analysis;
             }
 
             res.json({ success: true, data: destination });
         } catch (error) {
+            console.error('Erreur getById:', error);
             res.status(500).json({ success: false, error: error.message });
         }
     }
 
     /**
-     * Créer une nouvelle destination
+     * Creer une nouvelle destination
      */
     async create(req, res) {
         try {
@@ -63,21 +74,23 @@ class DestinationController {
 
             // Validation
             if (!origin || !destination || !departure_date) {
-                return res.status(400).json({ 
-                    success: false, 
-                    error: 'Origine, destination et date de départ requis' 
+                return res.status(400).json({
+                    success: false,
+                    error: 'Origine, destination et date de depart requis'
                 });
             }
 
-            // Insérer la destination
-            const result = db.prepare(`
+            // Inserer la destination
+            const insertStmt = db.prepare(`
                 INSERT INTO destinations (origin, destination, departure_date, return_date, max_price)
                 VALUES (?, ?, ?, ?, ?)
-            `).run(origin, destination, departure_date, return_date, max_price || null);
+            `);
+            const result = await execQuery(insertStmt, 'run', origin, destination, departure_date, return_date, max_price || null);
 
-            const newDestination = db.prepare('SELECT * FROM destinations WHERE id = ?').get(result.lastInsertRowid);
+            const selectStmt = db.prepare('SELECT * FROM destinations WHERE id = ?');
+            const newDestination = await execQuery(selectStmt, 'get', result.lastInsertRowid);
 
-            // Vérifier le prix immédiatement
+            // Verifier le prix immediatement
             try {
                 const price = await duffelService.getLowestPrice({
                     origin,
@@ -87,43 +100,46 @@ class DestinationController {
                 });
 
                 if (price) {
-                    db.prepare(`
+                    const priceStmt = db.prepare(`
                         INSERT INTO prices (destination_id, price, currency, airline)
                         VALUES (?, ?, 'CAD', 'Air Canada')
-                    `).run(result.lastInsertRowid, price);
+                    `);
+                    await execQuery(priceStmt, 'run', result.lastInsertRowid, price);
 
                     newDestination.latest_price = price;
                 }
             } catch (error) {
-                console.error('Erreur lors de la vérification initiale du prix:', error.message);
+                console.error('Erreur lors de la verification initiale du prix:', error.message);
             }
 
-            res.status(201).json({ 
-                success: true, 
+            res.status(201).json({
+                success: true,
                 data: newDestination,
-                message: 'Destination ajoutée avec succès' 
+                message: 'Destination ajoutee avec succes'
             });
 
         } catch (error) {
+            console.error('Erreur create:', error);
             res.status(500).json({ success: false, error: error.message });
         }
     }
 
     /**
-     * Mettre à jour une destination
+     * Mettre a jour une destination
      */
-    update(req, res) {
+    async update(req, res) {
         try {
             const { id } = req.params;
             const { origin, destination, departure_date, return_date, max_price, is_active } = req.body;
 
-            // Vérifier que la destination existe
-            const existing = db.prepare('SELECT * FROM destinations WHERE id = ?').get(id);
+            // Verifier que la destination existe
+            const existStmt = db.prepare('SELECT * FROM destinations WHERE id = ?');
+            const existing = await execQuery(existStmt, 'get', id);
             if (!existing) {
                 return res.status(404).json({ success: false, error: 'Destination introuvable' });
             }
 
-            // Construire la requête de mise à jour
+            // Construire la requete de mise a jour
             const updates = [];
             const values = [];
 
@@ -141,21 +157,24 @@ class DestinationController {
             updates.push('updated_at = CURRENT_TIMESTAMP');
             values.push(id);
 
-            db.prepare(`
-                UPDATE destinations 
+            const updateStmt = db.prepare(`
+                UPDATE destinations
                 SET ${updates.join(', ')}
                 WHERE id = ?
-            `).run(...values);
+            `);
+            await execQuery(updateStmt, 'run', ...values);
 
-            const updated = db.prepare('SELECT * FROM destinations WHERE id = ?').get(id);
+            const selectStmt = db.prepare('SELECT * FROM destinations WHERE id = ?');
+            const updated = await execQuery(selectStmt, 'get', id);
 
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 data: updated,
-                message: 'Destination mise à jour' 
+                message: 'Destination mise a jour'
             });
 
         } catch (error) {
+            console.error('Erreur update:', error);
             res.status(500).json({ success: false, error: error.message });
         }
     }
@@ -163,23 +182,26 @@ class DestinationController {
     /**
      * Supprimer une destination
      */
-    delete(req, res) {
+    async delete(req, res) {
         try {
             const { id } = req.params;
 
-            const existing = db.prepare('SELECT * FROM destinations WHERE id = ?').get(id);
+            const existStmt = db.prepare('SELECT * FROM destinations WHERE id = ?');
+            const existing = await execQuery(existStmt, 'get', id);
             if (!existing) {
                 return res.status(404).json({ success: false, error: 'Destination introuvable' });
             }
 
-            db.prepare('DELETE FROM destinations WHERE id = ?').run(id);
+            const deleteStmt = db.prepare('DELETE FROM destinations WHERE id = ?');
+            await execQuery(deleteStmt, 'run', id);
 
-            res.json({ 
-                success: true, 
-                message: 'Destination supprimée' 
+            res.json({
+                success: true,
+                message: 'Destination supprimee'
             });
 
         } catch (error) {
+            console.error('Erreur delete:', error);
             res.status(500).json({ success: false, error: error.message });
         }
     }

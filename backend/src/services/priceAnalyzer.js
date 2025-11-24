@@ -1,28 +1,35 @@
 const db = require('../db/database');
 const { differenceInDays, parseISO } = require('date-fns');
 
+// Helper pour executer les requetes de maniere unifiee
+async function execQuery(stmt, method, ...params) {
+    const result = stmt[method](...params);
+    return result instanceof Promise ? await result : result;
+}
+
 class PriceAnalyzer {
     /**
-     * Calculer le score qualité/prix
+     * Calculer le score qualite/prix
      * @param {Number} destinationId - ID de la destination
      * @param {Number} currentPrice - Prix actuel
      * @returns {Object} - Score et analyse
      */
-    calculateQualityScore(destinationId, currentPrice) {
-        // Récupérer l'historique des prix (30 derniers jours)
-        const prices = db.prepare(`
-            SELECT price, checked_at 
-            FROM prices 
-            WHERE destination_id = ? 
+    async calculateQualityScore(destinationId, currentPrice) {
+        // Recuperer l'historique des prix (30 derniers jours)
+        const stmt = db.prepare(`
+            SELECT price, checked_at
+            FROM prices
+            WHERE destination_id = ?
             AND checked_at >= datetime('now', '-30 days')
             ORDER BY checked_at DESC
-        `).all(destinationId);
+        `);
+        const prices = await execQuery(stmt, 'all', destinationId);
 
         if (prices.length === 0) {
             return {
                 score: 50,
-                recommendation: 'Pas assez de données historiques',
-                analysis: 'Premier relevé de prix'
+                recommendation: 'Pas assez de donnees historiques',
+                analysis: 'Premier releve de prix'
             };
         }
 
@@ -31,7 +38,7 @@ class PriceAnalyzer {
         const minPrice = Math.min(...priceValues);
         const maxPrice = Math.max(...priceValues);
 
-        // Calculer l'écart-type
+        // Calculer l'ecart-type
         const variance = priceValues.reduce((sum, price) => {
             return sum + Math.pow(price - avgPrice, 2);
         }, 0) / priceValues.length;
@@ -40,15 +47,17 @@ class PriceAnalyzer {
         // Calculer le score (0-100)
         let score = 100;
 
-        // Facteur 1: Comparaison à la moyenne (40% du score)
+        // Facteur 1: Comparaison a la moyenne (40% du score)
         const avgDifference = ((avgPrice - currentPrice) / avgPrice) * 100;
         score -= Math.max(0, -avgDifference * 0.4);
 
         // Facteur 2: Position dans la fourchette min-max (30% du score)
-        const rangePosition = ((currentPrice - minPrice) / (maxPrice - minPrice)) * 100;
+        const rangePosition = maxPrice !== minPrice
+            ? ((currentPrice - minPrice) / (maxPrice - minPrice)) * 100
+            : 50;
         score -= rangePosition * 0.3;
 
-        // Facteur 3: Tendance récente (30% du score)
+        // Facteur 3: Tendance recente (30% du score)
         const recentPrices = priceValues.slice(0, 5);
         const trend = this.calculateTrend(recentPrices);
         if (trend === 'hausse') {
@@ -60,11 +69,11 @@ class PriceAnalyzer {
         // Normaliser le score entre 0 et 100
         score = Math.max(0, Math.min(100, score));
 
-        // Déterminer la recommandation
+        // Determiner la recommandation
         let recommendation, analysis;
         if (score >= 90) {
             recommendation = 'Excellent moment pour acheter';
-            analysis = `Prix ${Math.abs(avgDifference).toFixed(1)}% inférieur à la moyenne`;
+            analysis = `Prix ${Math.abs(avgDifference).toFixed(1)}% inferieur a la moyenne`;
         } else if (score >= 70) {
             recommendation = 'Bon prix, achetez si dates conviennent';
             analysis = 'Prix dans la fourchette basse';
@@ -72,8 +81,8 @@ class PriceAnalyzer {
             recommendation = 'Prix moyen, attendre si possible';
             analysis = 'Prix proche de la moyenne historique';
         } else {
-            recommendation = 'Prix élevé, attendre une baisse';
-            analysis = `Prix ${Math.abs(avgDifference).toFixed(1)}% supérieur à la moyenne`;
+            recommendation = 'Prix eleve, attendre une baisse';
+            analysis = `Prix ${Math.abs(avgDifference).toFixed(1)}% superieur a la moyenne`;
         }
 
         return {
@@ -93,7 +102,7 @@ class PriceAnalyzer {
 
     /**
      * Calculer la tendance des prix
-     * @param {Array} prices - Liste des prix récents
+     * @param {Array} prices - Liste des prix recents
      * @returns {String} - 'hausse', 'baisse', ou 'stable'
      */
     calculateTrend(prices) {
@@ -115,22 +124,23 @@ class PriceAnalyzer {
     }
 
     /**
-     * Détecter si c'est le moment d'acheter
+     * Detecter si c'est le moment d'acheter
      * @param {Number} destinationId - ID de la destination
      * @param {Number} currentPrice - Prix actuel
      * @returns {Object} - Recommandation d'achat
      */
-    shouldBuyNow(destinationId, currentPrice) {
-        const scoreData = this.calculateQualityScore(destinationId, currentPrice);
-        
-        // Récupérer la destination
-        const destination = db.prepare('SELECT * FROM destinations WHERE id = ?').get(destinationId);
-        
+    async shouldBuyNow(destinationId, currentPrice) {
+        const scoreData = await this.calculateQualityScore(destinationId, currentPrice);
+
+        // Recuperer la destination
+        const stmt = db.prepare('SELECT * FROM destinations WHERE id = ?');
+        const destination = await execQuery(stmt, 'get', destinationId);
+
         if (!destination) {
             return { buy: false, reason: 'Destination introuvable' };
         }
 
-        // Vérifier le prix maximum
+        // Verifier le prix maximum
         if (destination.max_price && currentPrice <= destination.max_price) {
             return {
                 buy: true,
@@ -140,7 +150,7 @@ class PriceAnalyzer {
             };
         }
 
-        // Vérifier le score qualité/prix
+        // Verifier le score qualite/prix
         if (scoreData.score >= 85) {
             return {
                 buy: true,
@@ -150,7 +160,7 @@ class PriceAnalyzer {
             };
         }
 
-        // Vérifier la proximité de la date de départ
+        // Verifier la proximite de la date de depart
         const daysUntilDeparture = differenceInDays(
             parseISO(destination.departure_date),
             new Date()
@@ -174,20 +184,21 @@ class PriceAnalyzer {
     }
 
     /**
-     * Détecter une baisse significative de prix
+     * Detecter une baisse significative de prix
      * @param {Number} destinationId - ID de la destination
      * @param {Number} currentPrice - Prix actuel
      * @returns {Object|null} - Info sur la baisse ou null
      */
-    detectPriceDrop(destinationId, currentPrice) {
-        // Récupérer le dernier prix
-        const lastPrice = db.prepare(`
-            SELECT price 
-            FROM prices 
-            WHERE destination_id = ? 
-            ORDER BY checked_at DESC 
+    async detectPriceDrop(destinationId, currentPrice) {
+        // Recuperer le dernier prix
+        const stmt = db.prepare(`
+            SELECT price
+            FROM prices
+            WHERE destination_id = ?
+            ORDER BY checked_at DESC
             LIMIT 1
-        `).get(destinationId);
+        `);
+        const lastPrice = await execQuery(stmt, 'get', destinationId);
 
         if (!lastPrice) return null;
 

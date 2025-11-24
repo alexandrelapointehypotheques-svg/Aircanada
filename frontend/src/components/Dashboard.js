@@ -48,7 +48,15 @@ function Dashboard() {
 
     const handleAddDestination = async (data) => {
         try {
-            await destinationAPI.create(data);
+            // Convertir les noms de champs pour le backend
+            const backendData = {
+                origin: data.origin,
+                destination: data.destination,
+                departure_date: data.departureDate,
+                return_date: data.returnDate || null,
+                max_price: data.maxPrice ? parseFloat(data.maxPrice) : null
+            };
+            await destinationAPI.create(backendData);
             setShowAddForm(false);
             loadData();
             alert('Destination ajoutée avec succès!');

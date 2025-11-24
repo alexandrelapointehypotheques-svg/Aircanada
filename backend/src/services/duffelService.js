@@ -11,7 +11,7 @@ class DuffelService {
             headers: {
                 'Authorization': `Bearer ${this.apiKey}`,
                 'Content-Type': 'application/json',
-                'Duffel-Version': 'v1'
+                'Duffel-Version': 'v2'
             }
         });
     }

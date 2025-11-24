@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { destinationAPI } from '../services/api';
@@ -8,31 +8,31 @@ function PriceChart({ destinationId }) {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadPriceHistory();
-    }, [destinationId]);
-
-    const loadPriceHistory = async () => {
+    const loadPriceHistory = useCallback(async () => {
         try {
             const response = await destinationAPI.getPriceHistory(destinationId, 100);
             const history = response.data.data;
-            
-            // Formatter les données pour Recharts
+
+            // Formatter les donnees pour Recharts
             const formattedData = history
-                .reverse() // Plus ancien au plus récent
+                .reverse() // Plus ancien au plus recent
                 .map(item => ({
                     date: format(new Date(item.checked_at), 'dd/MM HH:mm'),
                     prix: item.price,
                     fullDate: new Date(item.checked_at)
                 }));
-            
+
             setData(formattedData);
         } catch (error) {
             console.error('Erreur chargement historique:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [destinationId]);
+
+    useEffect(() => {
+        loadPriceHistory();
+    }, [loadPriceHistory]);
 
     if (loading) {
         return <div className="chart-loading">Chargement du graphique...</div>;

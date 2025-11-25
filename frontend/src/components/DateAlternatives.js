@@ -40,6 +40,19 @@ function DateAlternatives({ destinationId, onClose }) {
         return `${price.toFixed(0)} $`;
     };
 
+    const getStopsLabel = (alt) => {
+        if (!alt.available) return null;
+        if (alt.isDirect) return 'Vol direct';
+        if (alt.totalStops === 1) return '1 escale';
+        return `${alt.totalStops} escales`;
+    };
+
+    const getStopsClass = (alt) => {
+        if (!alt.available) return '';
+        if (alt.isDirect) return 'direct';
+        return 'with-stops';
+    };
+
     if (loading) {
         return (
             <div className="date-alternatives-modal">
@@ -70,15 +83,18 @@ function DateAlternatives({ destinationId, onClose }) {
     const availableDates = data?.alternatives?.filter(a => a.available) || [];
     const unavailableDates = data?.alternatives?.filter(a => !a.available) || [];
 
+    // Compter les vols directs
+    const directFlights = availableDates.filter(a => a.isDirect);
+
     return (
         <div className="date-alternatives-modal">
             <div className="date-alternatives-content">
                 <div className="modal-header">
                     <h3>Dates alternatives</h3>
                     <p className="route-info">
-                        {data?.destination?.origin} → {data?.destination?.destination}
+                        {data?.destination?.origin} - {data?.destination?.destination}
                     </p>
-                    <button className="close-btn" onClick={onClose}>×</button>
+                    <button className="close-btn" onClick={onClose}>x</button>
                 </div>
 
                 <div className="alternatives-body">
@@ -90,9 +106,29 @@ function DateAlternatives({ destinationId, onClose }) {
                     ) : (
                         <>
                             <div className="best-price-banner">
-                                <span className="best-label">Meilleur prix</span>
-                                <span className="best-date">{formatDate(availableDates[0]?.date)}</span>
-                                <span className="best-price">{formatPrice(availableDates[0]?.price)}</span>
+                                <div className="best-main">
+                                    <span className="best-label">Meilleur prix</span>
+                                    <span className="best-date">{formatDate(availableDates[0]?.date)}</span>
+                                </div>
+                                <div className="best-details">
+                                    <span className="best-price">{formatPrice(availableDates[0]?.price)}</span>
+                                    <span className={`stops-badge ${getStopsClass(availableDates[0])}`}>
+                                        {getStopsLabel(availableDates[0])}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Resume des vols */}
+                            <div className="flights-summary">
+                                <span className="summary-item">
+                                    <strong>{availableDates.length}</strong> vols disponibles
+                                </span>
+                                <span className="summary-item direct">
+                                    <strong>{directFlights.length}</strong> vols directs
+                                </span>
+                                <span className="summary-item with-stops">
+                                    <strong>{availableDates.length - directFlights.length}</strong> avec escale
+                                </span>
                             </div>
 
                             <div className="dates-list">
@@ -109,11 +145,31 @@ function DateAlternatives({ destinationId, onClose }) {
                                                     Retour: {formatDate(alt.returnDate)}
                                                 </span>
                                             )}
-                                            {alt.isOriginalDate && (
-                                                <span className="original-badge">Date choisie</span>
-                                            )}
-                                            {alt.isBestPrice && (
-                                                <span className="best-badge">Meilleur prix</span>
+                                            <div className="flight-badges">
+                                                {alt.isOriginalDate && (
+                                                    <span className="original-badge">Date choisie</span>
+                                                )}
+                                                {alt.isBestPrice && (
+                                                    <span className="best-badge">Meilleur prix</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flight-info">
+                                            <span className={`stops-indicator ${getStopsClass(alt)}`}>
+                                                {alt.isDirect ? (
+                                                    <>
+                                                        <span className="stops-icon">&#10003;</span>
+                                                        <span>Direct</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="stops-icon">&#8644;</span>
+                                                        <span>{alt.totalStops} escale{alt.totalStops > 1 ? 's' : ''}</span>
+                                                    </>
+                                                )}
+                                            </span>
+                                            {alt.duration && (
+                                                <span className="duration">{alt.duration}</span>
                                             )}
                                         </div>
                                         <div className="price-info">
